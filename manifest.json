@@ -14,7 +14,7 @@
   },
   "host_permissions": [
     "https://api.mochify.app/*",
-    "https://tokens.mochify.app/*",
+    "https://id.mochify.app/*",
     "<all_urls>"
   ],
   "background": {

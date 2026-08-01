@@ -1,7 +1,7 @@
 importScripts("lib/fflate.js"); // exposes self.fflate (zipSync) for batch downloads
 
 const API        = "https://api.mochify.app";
-const WORKER_URL = "https://tokens.mochify.app";
+const WORKER_URL = "https://id.mochify.app";
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
@@ -113,10 +113,10 @@ async function classifyHttp(status, authed) {
   return fail("generic");
 }
 
-// GET /v1/checkTokens → { available, plan, quota, remaining } or null on failure.
+// GET /v1/usage → { available, plan, quota, remaining } or null on failure.
 async function fetchTokens(authHeader) {
   try {
-    const res = await fetch(`${API}/v1/checkTokens`, { headers: authHeader });
+    const res = await fetch(`${WORKER_URL}/v1/usage`, { headers: authHeader });
     if (!res.ok) return null;
     return await res.json();
   } catch {
