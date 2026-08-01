@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mochify</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #FDFBF7;
+      color: #4A2C2C;
+      width: 280px;
+      padding: 18px;
+    }
+
+    .logo {
+      font-size: 15px;
+      font-weight: 800;
+      color: #F06292;
+      letter-spacing: 0.04em;
+      margin-bottom: 14px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #875F42;
+      opacity: 0.65;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+
+    .free-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(165,214,167,0.2);
+      border: 1px solid rgba(165,214,167,0.5);
+      border-radius: 8px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #2E5C31;
+      margin-bottom: 14px;
+    }
+
+    .free-pill svg { flex-shrink: 0; }
+
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #FF9EBB, #F06292);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .btn:hover { opacity: 0.88; }
+
+    .btn-ghost {
+      background: transparent;
+      color: #875F42;
+      opacity: 0.55;
+      font-size: 11px;
+      font-weight: 600;
+      text-decoration: underline;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+      display: block;
+    }
+
+    .btn-ghost:hover { opacity: 0.9; }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(165,214,167,0.15);
+      border: 1px solid rgba(165,214,167,0.45);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 12px;
+    }
+
+    .user-check {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #A5D6A7;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #2E5C31;
+      font-size: 10px;
+      font-weight: 900;
+    }
+
+    .user-email {
+      font-size: 11px;
+      font-weight: 700;
+      color: #2E5C31;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    a {
+      font-size: 11px;
+      color: #F06292;
+      text-decoration: none;
+      text-align: center;
+      display: block;
+    }
+
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="logo">Mochify</div>
+
+  <!-- Signed out -->
+  <div id="signed-out">
+    <p class="hint">Right-click any image and choose <strong>Send to Mochify...</strong> to compress it with a natural-language prompt.</p>
+    <div class="free-pill">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#2E5C31" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+      25 free images/month, no card needed
+    </div>
+    <button class="btn" id="sign-in">Sign in to Mochify</button>
+    <a href="https://mochify.app" target="_blank">mochify.app →</a>
+  </div>
+
+  <!-- Signed in -->
+  <div id="signed-in" style="display:none">
+    <div class="user-card">
+      <div class="user-check">✓</div>
+      <span class="user-email" id="user-email"></span>
+    </div>
+    <p class="hint">Right-click any image and choose <strong>Send to Mochify...</strong> to compress it with a natural-language prompt.</p>
+    <button class="btn-ghost" id="sign-out">Sign out</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
