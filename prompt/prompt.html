@@ -199,8 +199,20 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       padding: 8px 16px;
     }
+
+    /* With a CTA the two never fit on one line: the message wraps and the button
+       gets crushed against the edge. Stack instead — message across the full
+       width, action beneath it on the right. */
+    .footer-inner.has-cta {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
+      padding-bottom: 10px;
+    }
+    .footer-inner.has-cta .cta-btn { align-self: flex-end; }
 
     .status-text {
       font-size: 11px;
@@ -208,6 +220,8 @@
       color: #875F42;
       opacity: 0.7;
       transition: color 0.2s;
+      min-width: 0;
+      line-height: 1.45;
     }
 
     .status-text.error  { color: #e53935; opacity: 1; }
@@ -235,12 +249,81 @@
       cursor: pointer;
       letter-spacing: 0.02em;
       white-space: nowrap;
+      flex: none;
       box-shadow: 0 2px 8px rgba(240,98,146,0.35);
       transition: transform 0.15s, box-shadow 0.15s;
     }
     .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(240,98,146,0.5); }
 
     /* ── Animations ───────────────────────────────────────────────── */
+    /* Destination toggle — only shown when the account has a Drive connected. */
+    /* Lives in the footer band with the status line, not floating between the
+       input and the divider. */
+    .dest-row {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px 1px;
+    }
+    .dest-row.on { display: flex; }
+
+    /* border-box, so the 1px border doesn't push the knob off centre — the
+       track's inner box is exactly 2px taller than the knob. */
+    .dest-switch {
+      box-sizing: border-box;
+      position: relative;
+      width: 32px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(135,95,66,0.22);
+      background: rgba(135,95,66,0.14);
+      cursor: pointer;
+      padding: 0;
+      flex: none;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .dest-switch::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.22);
+      transition: transform 0.18s;
+    }
+    .dest-switch[aria-checked="true"] {
+      background: linear-gradient(135deg, #FF9EBB, #F06292);
+      border-color: rgba(240,98,146,0.45);
+    }
+    .dest-switch[aria-checked="true"]::after { transform: translateX(14px); }
+
+    .dest-label {
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #875F42;
+      opacity: 0.75;
+      cursor: pointer;
+      user-select: none;
+    }
+    .dest-row.on:hover .dest-label { opacity: 1; }
+
+    /* Connected but not usable — inert switch, and the label is the way out. */
+    .dest-row.broken .dest-switch {
+      opacity: 0.45;
+      cursor: default;
+      background: rgba(135,95,66,0.12);
+    }
+    .dest-row.broken .dest-label {
+      color: #c2410c;
+      opacity: 1;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
@@ -283,6 +366,11 @@
       <div class="progress-track" id="progress-track">
         <div class="progress-pulse" id="progress-pulse"></div>
         <div class="progress-fill"  id="progress-fill"></div>
+      </div>
+      <div class="dest-row" id="dest-row">
+        <button class="dest-switch" id="dest-switch" role="switch" aria-checked="false"
+          aria-label="Save to Google Drive"></button>
+        <label class="dest-label" id="dest-label" for="dest-switch">Save to Google Drive</label>
       </div>
       <div class="footer-inner">
         <span class="status-text" id="status">Describe what you want…</span>

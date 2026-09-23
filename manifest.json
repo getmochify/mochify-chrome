@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Mochify – AI Image Compression & Optimization",
-  "version": "1.2.0",
-  "description": "Right‑click any image to resize, convert, and optimize it instantly with Mochify.",
+  "name": "Mochify: Right-Click Image Converter & Compressor",
+  "short_name": "Mochify",
+  "version": "1.3.2",
+  "description": "Right-click any image to save it as JPG, PNG, WebP, AVIF, JPEG XL or PDF, or describe the edit you want in plain English.",
   "permissions": [
     "contextMenus",
     "activeTab",

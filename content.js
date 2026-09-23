@@ -78,7 +78,9 @@
     .close-btn {
       position: absolute;
       top: 12px;
-      right: 12px;
+      /* 16px is the gutter every row uses, so the close button, the send button
+         and the CTA all share one right edge. */
+      right: 16px;
       width: 28px;
       height: 28px;
       border-radius: 8px;
@@ -251,8 +253,20 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 10px;
       padding: 8px 16px;
     }
+
+    /* With a CTA the two never fit on one line: the message wraps and the button
+       gets crushed against the edge. Stack instead — message across the full
+       width, action beneath it on the right. */
+    .footer-inner.has-cta {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 7px;
+      padding-bottom: 10px;
+    }
+    .footer-inner.has-cta .cta-btn { align-self: flex-end; }
 
     .status-text {
       font-family: 'Quicksand', system-ui, sans-serif;
@@ -261,6 +275,8 @@
       color: #875F42;
       opacity: 0.7;
       transition: color 0.2s;
+      min-width: 0;
+      line-height: 1.45;
     }
 
     .status-text.error   { color: #e53935; opacity: 1; }
@@ -290,10 +306,79 @@
       cursor: pointer;
       letter-spacing: 0.02em;
       white-space: nowrap;
+      flex: none;
       box-shadow: 0 2px 8px rgba(240,98,146,0.35);
       transition: transform 0.15s, box-shadow 0.15s;
     }
     .cta-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(240,98,146,0.5); }
+
+    /* Destination toggle — only rendered when the account has a Drive connected. */
+    /* Lives in the footer band with the status line, not floating between the
+       input and the divider. */
+    .dest-row {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px 1px;
+    }
+    .dest-row.on { display: flex; }
+
+    /* border-box, so the 1px border doesn't push the knob off centre — the
+       track's inner box is exactly 2px taller than the knob. */
+    .dest-switch {
+      box-sizing: border-box;
+      position: relative;
+      width: 32px;
+      height: 18px;
+      border-radius: 999px;
+      border: 1px solid rgba(135,95,66,0.22);
+      background: rgba(135,95,66,0.14);
+      cursor: pointer;
+      padding: 0;
+      flex: none;
+      transition: background 0.18s, border-color 0.18s;
+    }
+    .dest-switch::after {
+      content: "";
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.22);
+      transition: transform 0.18s;
+    }
+    .dest-switch[aria-checked="true"] {
+      background: linear-gradient(135deg, #FF9EBB, #F06292);
+      border-color: rgba(240,98,146,0.45);
+    }
+    .dest-switch[aria-checked="true"]::after { transform: translateX(14px); }
+
+    .dest-label {
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      color: #875F42;
+      opacity: 0.75;
+      cursor: pointer;
+      user-select: none;
+    }
+    .dest-row.on:hover .dest-label { opacity: 1; }
+
+    /* Connected but not usable — inert switch, and the label is the way out. */
+    .dest-row.broken .dest-switch {
+      opacity: 0.45;
+      cursor: default;
+      background: rgba(135,95,66,0.12);
+    }
+    .dest-row.broken .dest-label {
+      color: #c2410c;
+      opacity: 1;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
 
     @keyframes spin      { to { transform: rotate(360deg); } }
     @keyframes pulse-bar { 0%, 100% { opacity: 0.65; } 50% { opacity: 0.28; } }
@@ -337,6 +422,11 @@
           <div class="progress-pulse" id="progress-pulse"></div>
           <div class="progress-fill"  id="progress-fill"></div>
         </div>
+        <div class="dest-row" id="dest-row">
+          <button class="dest-switch" id="dest-switch" role="switch" aria-checked="false"
+            aria-label="Save to Google Drive"></button>
+          <label class="dest-label" id="dest-label" for="dest-switch">Save to Google Drive</label>
+        </div>
         <div class="footer-inner">
           <span class="status-text" id="status">Describe what you want…</span>
           <span class="hint-badge" id="hint-badge">↵</span>
@@ -359,6 +449,10 @@
   const closeBtn      = shadow.querySelector(".close-btn");
   const cta           = shadow.getElementById("cta");
   const hintBadge     = shadow.getElementById("hint-badge");
+  const destRow       = shadow.getElementById("dest-row");
+  const destSwitch    = shadow.getElementById("dest-switch");
+  const destLabel     = shadow.getElementById("dest-label");
+  const footerInner   = shadow.querySelector(".footer-inner");
 
   const SPINNER_SVG = `<svg class="spinning" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>`;
   const SEND_SVG    = `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>`;
@@ -379,6 +473,7 @@
   function resetCta() {
     cta.style.display = "none";
     hintBadge.style.display = "";
+    footerInner.classList.remove("has-cta");
   }
 
   // Render a structured error from the background, with an optional CTA button.
@@ -390,10 +485,63 @@
       cta.dataset.url = detail.action.url;
       cta.style.display = "";
       hintBadge.style.display = "none";
+      // The message needs the full width once it shares the row with a button.
+      footerInner.classList.add("has-cta");
     }
   }
 
-  function openOverlay(imageUrl) {
+  // ── Destination toggle ────────────────────────────────────────────────────
+  // Hidden unless this account connected a Drive on mochify.app. The extension
+  // itself never talks to Google — core uploads with the connection the account
+  // already has, so this is one flag on the request, not an integration.
+  let saveToDrive = false;
+
+  let destBroken = false;
+
+  function renderDest(state) {
+    if (!state?.driveConnected) {
+      destRow.classList.remove("on");
+      saveToDrive = false;
+      destBroken = false;
+      return;
+    }
+    // Connected but failing its checks: the worker won't mint an upload session
+    // for it, so the switch is inert and the row says what to do about it.
+    destBroken = !!state.driveBroken;
+    saveToDrive = !destBroken && !!state.saveToDrive;
+    destLabel.textContent = destBroken
+      ? "Drive needs reconnecting"
+      : state.folderName
+        ? `Save to Drive · ${state.folderName}`
+        : "Save to Google Drive";
+    destSwitch.setAttribute("aria-checked", saveToDrive ? "true" : "false");
+    destSwitch.setAttribute("aria-disabled", destBroken ? "true" : "false");
+    // Hover gives the reason; the click gives the fix.
+    destLabel.title = destBroken && state.driveDetail ? state.driveDetail : "";
+    destRow.classList.toggle("broken", destBroken);
+    destRow.classList.add("on");
+  }
+
+  function toggleDest() {
+    if (destBroken) {
+      chrome.runtime.sendMessage({ type: "MOCHIFY_OPEN_TAB", url: "https://mochify.app/dashboard" });
+      return;
+    }
+    saveToDrive = !saveToDrive;
+    destSwitch.setAttribute("aria-checked", saveToDrive ? "true" : "false");
+    // Sticky and shared with the Convert to ▸ rows, which is why the background
+    // relabels that menu when this moves.
+    chrome.runtime.sendMessage({ type: "MOCHIFY_SET_DEST", saveToDrive }).catch(() => {});
+  }
+
+  destSwitch.addEventListener("click", toggleDest);
+  destLabel.addEventListener("click", toggleDest);
+
+  // `convertTo` is a Convert to ▸ pick: there is nothing to type, so the overlay
+  // opens straight into its working state and runs the job itself. The prompt
+  // row stays visible but inert — it is what the card IS, and hiding it would
+  // resize the card mid-flight for a job that takes a second.
+  function openOverlay(imageUrl, convertTo = null) {
     try {
       preview.src = imageUrl;
       srcLabel.textContent = new URL(imageUrl).hostname;
@@ -409,7 +557,85 @@
     setProgress("idle");
 
     host.style.display = "block";
+
+    // Ask every open: the connection can be made or revoked on mochify.app
+    // between one right-click and the next.
+    destRow.classList.remove("on");
+    chrome.runtime
+      .sendMessage({ type: "MOCHIFY_DEST_STATE", imageUrl })
+      .then(renderDest)
+      .catch(() => {});
+
+    if (convertTo) {
+      promptEl.disabled = true;
+      btn.innerHTML = SPINNER_SVG;
+      setProgress("thinking");
+      // The background replaces this the moment it knows the source format.
+      setStatus("Converting…");
+      runJob({ type: "MOCHIFY_CONVERT", imageUrl, format: convertTo });
+      return;
+    }
+
     setTimeout(() => promptEl.focus(), 50);
+  }
+
+  // Send a job to the background, download whatever comes back, and put the
+  // card back in a usable state. Shared by the prompt and the quick-convert
+  // rows so both spend one error model and one download path.
+  async function runJob(message) {
+    let result;
+    try {
+      result = await chrome.runtime.sendMessage(message);
+    } catch {
+      result = { error: { message: "Something went wrong. Please try again.", action: null } };
+    }
+
+    if (!result || result.error) {
+      const detail = result?.error && typeof result.error === "object"
+        ? result.error
+        : { message: result?.error || "Something went wrong.", action: null };
+      showError(detail);
+      btn.innerHTML = SEND_SVG;
+      btn.disabled = false;
+      promptEl.disabled = false;
+      return;
+    }
+
+    // A job sent to Drive answers with a receipt, not a file — there is nothing
+    // to download and saying "downloaded" would be a lie.
+    if (result.saved) {
+      setProgress("idle");
+      setStatus(`Saved ${result.saved.name} to ${result.saved.where} ✓`, "success");
+      btn.innerHTML = SEND_SVG;
+      btn.disabled = false;
+      promptEl.disabled = false;
+      btn.addEventListener("click", closeOverlay, { once: true });
+      return;
+    }
+
+    for (const { base64, contentType, downloadName } of result.results) {
+      const byteStr = atob(base64);
+      const bytes = new Uint8Array(byteStr.length);
+      for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
+      const blob = new Blob([bytes], { type: contentType });
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = downloadName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    }
+
+    const n = result.results.length;
+    const doneMsg = n > 1 ? `Done — ${n} files downloaded.` : "Done — file downloaded.";
+    setProgress("idle");
+    setStatus(result.note || doneMsg, "success");
+    btn.innerHTML = SEND_SVG;
+    btn.disabled = false;
+    promptEl.disabled = false;
+    btn.addEventListener("click", closeOverlay, { once: true });
   }
 
   function closeOverlay() {
@@ -454,57 +680,13 @@
     setStatus("Parsing prompt…");
 
     // All API calls go through the background service worker to bypass page CSP/CORS.
-    let result;
-    try {
-      result = await chrome.runtime.sendMessage({
-        type: "MOCHIFY_PROCESS",
-        imageUrl: preview.src,
-        prompt,
-      });
-    } catch {
-      result = { error: { message: "Something went wrong. Please try again.", action: null } };
-    }
-
-    if (!result || result.error) {
-      const detail = result?.error && typeof result.error === "object"
-        ? result.error
-        : { message: result?.error || "Something went wrong.", action: null };
-      showError(detail);
-      btn.innerHTML = SEND_SVG;
-      btn.disabled = false;
-      promptEl.disabled = false;
-      return;
-    }
-
-    // Download each format result.
-    for (const { base64, contentType, downloadName } of result.results) {
-      const byteStr = atob(base64);
-      const bytes = new Uint8Array(byteStr.length);
-      for (let i = 0; i < byteStr.length; i++) bytes[i] = byteStr.charCodeAt(i);
-      const blob = new Blob([bytes], { type: contentType });
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = downloadName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    }
-
-    const n = result.results.length;
-    const doneMsg = n > 1 ? `Done — ${n} files downloaded.` : "Done — file downloaded.";
-    setProgress("idle");
-    setStatus(result.note || doneMsg, "success");
-    btn.innerHTML = SEND_SVG;
-    btn.disabled = false;
-    btn.addEventListener("click", closeOverlay, { once: true });
+    await runJob({ type: "MOCHIFY_PROCESS", imageUrl: preview.src, prompt });
   });
 
   // ── Message listener ──────────────────────────────────────────────────────
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === "MOCHIFY_OPEN") {
-      openOverlay(msg.imageUrl);
+      openOverlay(msg.imageUrl, msg.convertTo ?? null);
       sendResponse({ ok: true });
     } else if (msg.type === "MOCHIFY_PROGRESS") {
       if (msg.status) setStatus(msg.status);

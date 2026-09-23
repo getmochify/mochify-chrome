@@ -17,10 +17,20 @@ function showSignedOut() {
   signedIn.style.display  = "none";
 }
 
-// A revoked/expired key is silently downgraded to the anonymous tier (plan
-// "ip") rather than 401'd, so presence of a stored key doesn't mean it's valid.
-// Validate against the usage endpoint and clear a dead key, otherwise the popup
-// keeps showing "signed in" while every request quietly drops to the free limit.
+// mochify-core seeds an anonymous (IP-metered) bucket with 3 ops. Keep in step
+// with ANON_QUOTA in mochify-worker / TokenLimiter.cc and background.js.
+const ANON_QUOTA = 3;
+
+// A revoked/expired key is silently downgraded to the anonymous tier rather than
+// 401'd, so presence of a stored key doesn't mean it's valid. Validate against
+// the usage endpoint and clear a dead key, otherwise the popup keeps showing
+// "signed in" while every request quietly drops to the anonymous limit.
+//
+// The worker has no explicit "this key didn't resolve" flag: an unknown key
+// falls through to the anonymous branch, which reports plan "free" with the
+// 3-op anonymous allowance instead of the free plan's 25. That pairing is the
+// signal. (The older `plan === "ip"` check could never fire — /v1/usage computes
+// its own plan and never returns the bucket's "ip".)
 async function validateAndRender() {
   const { apiKey, userEmail: email } = await chrome.storage.sync.get(["apiKey", "userEmail"]);
   if (!apiKey) {
@@ -34,7 +44,7 @@ async function validateAndRender() {
     });
     if (res.ok) {
       const info = await res.json();
-      if (!info.plan || info.plan === "ip") {
+      if (!info.plan || (info.plan === "free" && info.quota === ANON_QUOTA)) {
         await chrome.storage.sync.remove(["apiKey", "userEmail"]);
         showSignedOut();
       }
