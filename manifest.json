@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Mochify: Right-Click Image Converter & Compressor",
   "short_name": "Mochify",
-  "version": "1.3.2",
-  "description": "Right-click any image to save it as JPG, PNG, WebP, AVIF, JPEG XL or PDF, or describe the edit you want in plain English.",
+  "version": "1.3.3",
+  "description": "Convert any image on the web in one right-click, or describe the edit you want in plain English. Open source, zero retention.",
   "permissions": [
     "contextMenus",
     "activeTab",
