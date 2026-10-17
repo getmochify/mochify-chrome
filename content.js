@@ -182,7 +182,9 @@
       color: #875F42;
       opacity: 0.38;
       font-weight: 500;
+      transition: opacity 0.4s ease;
     }
+    input[type="text"].ph-out::placeholder { opacity: 0; }
 
     .send-btn {
       flex-shrink: 0;
@@ -218,6 +220,67 @@
       border: 1px solid rgba(255,255,255,0.6);
       box-shadow: inset 0 2px 4px rgba(0,0,0,0.02);
       cursor: not-allowed;
+    }
+
+    /* Recent prompts — only rendered once something has been submitted. Plain
+       white chips, as on mochify.app/flow, with ✕ to forget them all. */
+    .recent-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      /* The top padding is headroom for the chip's hover lift, which the
+         overflow clip would otherwise shave off; the margin pays it back. */
+      padding: 3px 16px 12px;
+      margin-top: -7px;
+      overflow: hidden;
+    }
+    .recent-row.on { display: flex; }
+
+    .recent-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      max-width: 150px;
+      flex: 0 1 auto;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(135,95,66,0.15);
+      background: rgba(255,255,255,0.6);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      font-family: 'Quicksand', system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(135,95,66,0.9);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .recent-chip svg { flex: none; opacity: 0.5; }
+    .recent-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-chip:hover {
+      border-color: #F06292;
+      background: rgba(255,255,255,0.8);
+      color: #F06292;
+      transform: translateY(-1px);
+    }
+
+    .recent-clear {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: none;
+      color: rgba(135,95,66,0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .recent-clear:hover {
+      border-color: rgba(135,95,66,0.15);
+      background: rgba(255,255,255,0.6);
+      color: #F06292;
     }
 
     .footer {
@@ -417,6 +480,8 @@
         </button>
       </div>
 
+      <div class="recent-row" id="recent-row"></div>
+
       <div class="footer">
         <div class="progress-track" id="progress-track">
           <div class="progress-pulse" id="progress-pulse"></div>
@@ -453,6 +518,7 @@
   const destSwitch    = shadow.getElementById("dest-switch");
   const destLabel     = shadow.getElementById("dest-label");
   const footerInner   = shadow.querySelector(".footer-inner");
+  const recentRow     = shadow.getElementById("recent-row");
 
   const SPINNER_SVG = `<svg class="spinning" width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>`;
   const SEND_SVG    = `<svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5"/></svg>`;
@@ -550,6 +616,7 @@
     }
     promptEl.value = "";
     promptEl.disabled = false;
+    recent.reset();
     btn.disabled = true;
     btn.innerHTML = SEND_SVG;
     resetCta();
@@ -643,6 +710,13 @@
   }
 
   // ── Events ────────────────────────────────────────────────────────────────
+  const recent = MochifyPromptHistory.attach({
+    input: promptEl,
+    row: recentRow,
+    onFill: () => { btn.disabled = !promptEl.value.trim(); },
+  });
+  MochifyPromptHistory.cyclePlaceholder(promptEl);
+
   closeBtn.addEventListener("click", closeOverlay);
 
   cta.addEventListener("click", () => {
@@ -669,8 +743,15 @@
   });
 
   btn.addEventListener("click", async () => {
-    const prompt = promptEl.value.trim();
-    if (!prompt) return;
+    if (!promptEl.value.trim()) return;
+    // "same again" becomes the last prompt, written back into the box so the
+    // user sees which instruction is being carried out.
+    const prompt = recent.resolve(promptEl.value.trim());
+    if (prompt === null) {
+      setStatus("Nothing to repeat yet. Tell me what you'd like done with this image.", "error");
+      return;
+    }
+    promptEl.value = prompt;
 
     btn.disabled = true;
     btn.innerHTML = SPINNER_SVG;

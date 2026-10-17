@@ -168,9 +168,23 @@ async function runJob(message) {
   btn.addEventListener("click", () => window.close(), { once: true });
 }
 
+const recent = MochifyPromptHistory.attach({
+  input: promptEl,
+  row: document.getElementById("recent-row"),
+  onFill: () => { btn.disabled = !promptEl.value.trim(); },
+});
+MochifyPromptHistory.cyclePlaceholder(promptEl);
+
 btn.addEventListener("click", () => {
-  const prompt = promptEl.value.trim();
-  if (!prompt) return;
+  if (!promptEl.value.trim()) return;
+  // "same again" becomes the last prompt, written back into the box so the
+  // user sees which instruction is being carried out.
+  const prompt = recent.resolve(promptEl.value.trim());
+  if (prompt === null) {
+    setStatus("Nothing to repeat yet. Tell me what you'd like done with this image.", "error");
+    return;
+  }
+  promptEl.value = prompt;
 
   btn.disabled = true;
   btn.innerHTML = SPINNER_SVG;

@@ -1,4 +1,5 @@
 importScripts("lib/fflate.js"); // exposes self.fflate (zipSync/unzipSync) for multi-variant jobs
+importScripts("lib/promptHistory.js"); // exposes self.MochifyPromptHistory for ↑/↓ recall
 
 const API        = "https://api.mochify.app";
 const WORKER_URL = "https://id.mochify.app";
@@ -40,13 +41,25 @@ chrome.runtime.onInstalled.addListener(() => {
   // removeAll first: create() on an id that already exists throws, and an
   // upgrade re-runs this over the previous install's menu.
   chrome.contextMenus.removeAll(() => {
+    // Our own parent rather than the one Chrome makes for an extension with
+    // several top-level items: that one is titled with the manifest name, whose
+    // "&" Chrome reads as a mnemonic marker and renders as a gap. Menu titles
+    // take "&&" for a literal ampersand; the manifest name can't, as it would
+    // show doubled on the store listing and chrome://extensions.
+    chrome.contextMenus.create({
+      id: "mochify",
+      title: "Mochify: Right-Click Image Converter && Compressor",
+      contexts: ["image"],
+    });
     chrome.contextMenus.create({
       id: "send-to-mochify",
+      parentId: "mochify",
       title: "Send to Mochify...",
       contexts: ["image"],
     });
     chrome.contextMenus.create({
       id: "quick-convert",
+      parentId: "mochify",
       title: "Convert to",
       contexts: ["image"],
     });
@@ -98,7 +111,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // Always re-inject so a stale context (after extension reload) gets replaced.
     await chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["content.js"],
+      files: ["lib/promptHistory.js", "content.js"],
     });
     await chrome.tabs.sendMessage(tab.id, {
       type: "MOCHIFY_OPEN",
@@ -115,6 +128,9 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "MOCHIFY_PROCESS") {
     const tabId = sender.tab?.id ?? null;
+    // Both prompt surfaces submit through here, so this is the one place a
+    // prompt gets remembered — before the job, so a failed one can be retried.
+    MochifyPromptHistory.remember(msg.prompt);
     processImage(msg.imageUrl, msg.prompt, tabId)
       .then(sendResponse)
       .catch((err) => sendResponse({ error: err?.detail ?? genericError(err) }));
@@ -916,7 +932,8 @@ function fallbackWindow(imageUrl, convertTo = null) {
     url: `${chrome.runtime.getURL("prompt/prompt.html")}?src=${encodeURIComponent(imageUrl)}${convertParam}`,
     type: "popup",
     width: 420,
-    height: 240,
+    // Room for the recent-prompts chip row under the input.
+    height: 276,
     focused: true,
   });
 }

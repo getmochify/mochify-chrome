@@ -127,7 +127,9 @@
       color: #875F42;
       opacity: 0.38;
       font-weight: 500;
+      transition: opacity 0.4s ease;
     }
+    input[type="text"].ph-out::placeholder { opacity: 0; }
 
     .send-btn {
       flex-shrink: 0;
@@ -166,6 +168,67 @@
     }
 
     /* ── Footer ───────────────────────────────────────────────────── */
+    /* Recent prompts — only rendered once something has been submitted. Plain
+       white chips, as on mochify.app/flow, with ✕ to forget them all. */
+    .recent-row {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      /* The top padding is headroom for the chip's hover lift, which the
+         overflow clip would otherwise shave off; the margin pays it back. */
+      padding: 3px 16px 12px;
+      margin-top: -7px;
+      overflow: hidden;
+    }
+    .recent-row.on { display: flex; }
+
+    .recent-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      max-width: 150px;
+      flex: 0 1 auto;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(135,95,66,0.15);
+      background: rgba(255,255,255,0.6);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 700;
+      color: rgba(135,95,66,0.9);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .recent-chip svg { flex: none; opacity: 0.5; }
+    .recent-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .recent-chip:hover {
+      border-color: #F06292;
+      background: rgba(255,255,255,0.8);
+      color: #F06292;
+      transform: translateY(-1px);
+    }
+
+    .recent-clear {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 6px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      background: none;
+      color: rgba(135,95,66,0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .recent-clear:hover {
+      border-color: rgba(135,95,66,0.15);
+      background: rgba(255,255,255,0.6);
+      color: #F06292;
+    }
+
     .footer {
       border-top: 1px solid rgba(255,255,255,0.32);
       background: rgba(255,249,244,0.82);
@@ -362,6 +425,8 @@
       </button>
     </div>
 
+    <div class="recent-row" id="recent-row"></div>
+
     <div class="footer">
       <div class="progress-track" id="progress-track">
         <div class="progress-pulse" id="progress-pulse"></div>
@@ -380,6 +445,7 @@
     </div>
   </div>
 
+  <script src="../lib/promptHistory.js"></script>
   <script src="prompt.js"></script>
 </body>
 </html>
