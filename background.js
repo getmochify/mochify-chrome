@@ -2,6 +2,8 @@ importScripts("lib/fflate.js"); // exposes self.fflate (zipSync/unzipSync) for m
 importScripts("lib/promptHistory.js"); // exposes self.MochifyPromptHistory for ↑/↓ recall
 
 const API        = "https://api.mochify.app";
+// Tells the API's usage count this came from the extension, and which version.
+const CLIENT_QUERY = `client=chrome_extension/${chrome.runtime.getManifest().version}`;
 const WORKER_URL = "https://id.mochify.app";
 
 // Plans core lets through its generative (shadow / background) gate. Deliberately
@@ -478,7 +480,7 @@ async function createPdf(imgBlob, { page = "fit", quality, dest, name } = {}, au
     query.append("name", name);
   }
 
-  const res = await fetch(`${API}/v1/pdf?${query}`, {
+  const res = await fetch(`${API}/v1/pdf?${query}&${CLIENT_QUERY}`, {
     method: "POST",
     headers: { "Content-Type": imgBlob.type || "image/jpeg", ...authHeader },
     body: imgBlob,
@@ -699,7 +701,7 @@ async function processImage(imageUrl, prompt, tabId) {
   const noteText = () => (notes.size ? [...notes].join(" ") : null);
 
   async function squish(query) {
-    const res = await fetch(`${API}/v1/squish?${query}`, {
+    const res = await fetch(`${API}/v1/squish?${query}&${CLIENT_QUERY}`, {
       method: "POST",
       headers: { "Content-Type": imgBlob.type || "image/jpeg", ...authHeader },
       body: imgBlob,
@@ -884,7 +886,7 @@ async function convertImage(imageUrl, format, tabId) {
     query.append("dest", "drive");
     query.append("name", outName);
   }
-  const res = await fetch(`${API}/v1/squish?${query}`, {
+  const res = await fetch(`${API}/v1/squish?${query}&${CLIENT_QUERY}`, {
     method: "POST",
     headers: { "Content-Type": imgBlob.type || "image/jpeg", ...authHeader },
     body: imgBlob,
